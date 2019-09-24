@@ -1,7 +1,8 @@
 {
     "files.associations": {
         "*.cuh": "cpp",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "iosfwd": "cpp"
     },
     "files.exclude": {
         "**/build": true

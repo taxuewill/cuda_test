@@ -26,3 +26,6 @@ target_link_libraries(test1 ${EXTRA_LIBS})
 
 add_executable(test2 test/test2.cpp )
 target_link_libraries(test2 ${OpenCV_LIBRARIES} ${EXTRA_LIBS})
+
+add_executable(nv12_rgb test/nv12_rgb.cpp )
+target_link_libraries(nv12_rgb ${OpenCV_LIBRARIES} ${EXTRA_LIBS})
