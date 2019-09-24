@@ -95,7 +95,7 @@ void rgb2yuv(const char *src,uint8_t *dest,int width,int height){
     printf("Copy input data from the host memory to the CUDA device\n");
     err = cudaMemcpy(nvPChar2, pChar3,  width*height*sizeof(uchar3), cudaMemcpyHostToDevice);
     RGB_to_YV12<uchar3, true><<<grid, block>>>(nvPChar2, width,nvYuv, width, width, height);
-    err = cudaMemcpy(dest, nvPChar2, width*height*3/2, cudaMemcpyDeviceToHost);
+    err = cudaMemcpy(dest, nvYuv, width*height*3/2, cudaMemcpyDeviceToHost);
     err = cudaFree(nvPChar2);
     err = cudaFree(nvYuv);
     CHECK(cudaDeviceSynchronize());
