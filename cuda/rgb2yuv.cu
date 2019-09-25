@@ -218,9 +218,7 @@ __device__ uint32_t RGBAPACK_8bit(float red, float green, float blue, uint32_t a
     blue  = min(max(blue,  0.0f), 255.0f);
 
     // Convert to 8 bit unsigned integers per color component
-    ARGBpixel = ((((uint32_t)red)   << 24) |
-                 (((uint32_t)green) << 16) |
-		       (((uint32_t)blue)  <<  8) | (uint32_t)alpha);
+    ARGBpixel = ((((uint32_t)red)   << 24) | (((uint32_t)green) << 16) | (((uint32_t)blue)  <<  8) | (uint32_t)alpha);
 
     return  ARGBpixel;
 }
@@ -235,14 +233,20 @@ __device__ uint32_t RGBAPACK_10bit(float red, float green, float blue, uint32_t 
     green = min(max(green, 0.0f), 1023.f);
 	blue  = min(max(blue,  0.0f), 1023.f);
 	uint32_t intRed = (uint32_t)red;
-	// printf("int red is %d\n",intRed);
+	intRed = intRed >> 2;
 
     // Convert to 8 bit unsigned integers per color component
-    ARGBpixel = ((((uint32_t)red   >> 2) << 24) |
-                 (((uint32_t)green >> 2) << 16) |
-				 (((uint32_t)blue  >> 2) <<  8) | (uint32_t)alpha);
-	//printf("int red %d ,int green %d,blue %d, ARGBpixel is %d\n",intRed>>2,((uint32_t)green >> 2),((uint32_t)blue  >> 2),ARGBpixel);
-	// printf("ARGBpixel is %d\n",ARGBpixel);
+    // ARGBpixel = ((((uint32_t)red   >> 2) << 24) |
+    //              (((uint32_t)green >> 2) << 16) |
+	// 			 (((uint32_t)blue  >> 2) <<  8) | (uint32_t)alpha);
+	// ARGBpixel = ((((uint32_t)red   >> 2) << 24) |(((uint32_t)green >> 2) << 16) |(((uint32_t)blue  >> 2) <<  8) );
+	// printf("[%d,%d] int red %d ,int green %d,blue %d",((uint32_t)red   >> 2),((uint32_t)green >> 2),((uint32_t)blue  >> 2),ARGBpixel);
+	uint8_t * pRed =(uint8_t *) &ARGBpixel;
+	*pRed=((uint32_t)red   >> 2);
+	*(pRed+1)=((uint32_t)green >> 2);
+	*(pRed+2)=((uint32_t)blue >> 2);
+
+	printf("red is %d,green is %d,blue is %d,postion0-3,%d,%d,%d,%d\n",((uint32_t)red >> 2),((uint32_t)green >> 2),((uint32_t)blue >> 2),*(pRed),*(pRed+1),*(pRed+2),*(pRed+3));
 
     return  ARGBpixel;
 }
@@ -324,13 +328,16 @@ __global__ void NV12ToARGB(uint32_t *srcImage,     size_t nSourcePitch,
 	// YUV to RGB Transformation conversion
 	YUV2RGB(&yuvi[0], &red[0], &green[0], &blue[0]);
 	YUV2RGB(&yuvi[3], &red[1], &green[1], &blue[1]);
-	uint32_t cudaAlpha = ((uint32_t)0xff<< 24);
 	
 
 	// Clamp the results to RGBA
-	dstImage[y * dstImagePitch + x     ] = RGBAPACK_10bit(red[0], green[0], blue[0], cudaAlpha);
-	dstImage[y * dstImagePitch + x + 1 ] = RGBAPACK_10bit(red[1], green[1], blue[1], cudaAlpha);
-	printf("[%d,%d] \n",x,y);
+	dstImage[y * dstImagePitch + x     ] = RGBAPACK_10bit(red[0], green[0], blue[0], constAlpha);
+	dstImage[y * dstImagePitch + x + 1 ] = RGBAPACK_10bit(red[1], green[1], blue[1], constAlpha);
+	uint8_t * pRead =(uint8_t*) &dstImage[y * dstImagePitch + x     ];
+	// if(x%4 ==0&&y%4==0){
+	// 	printf("[%d,%d] red is %d,green is %d \n",x,y,pRead[0],pRead[1]);
+	// }
+	
 }
 
 void rgb2yuv(const char *src,uint8_t *dest,int width,int height){
@@ -414,7 +421,7 @@ cudaError_t cudaNV12SetupColorspace( float hue = 0.0f )
 	if( CUDA_FAILED(cudaMemcpyToSymbol(constHueColorSpaceMat, hueCSC, sizeof(float) * 9)) )
 		return cudaErrorInvalidSymbol;
 
-	uint32_t cudaAlpha = ((uint32_t)0xff<< 24);
+	uint32_t cudaAlpha = ((uint32_t)0xff);
 
 	if( CUDA_FAILED(cudaMemcpyToSymbol(constAlpha, &cudaAlpha, sizeof(uint32_t))) )
 		return cudaErrorInvalidSymbol;
